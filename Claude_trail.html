@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaAI — Intelligent Chat Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Variables ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --bg:           #0a0a0f;
+      --surface:      #12121a;
+      --surface-high: #1a1a26;
+      --border:       rgba(255,255,255,.06);
+      --accent:       #6c63ff;
+      --accent-glow:  rgba(108,99,255,.2);
+      --accent-muted: rgba(108,99,255,.13);
+      --teal:         #00d4aa;
+      --text:         #e8e8f0;
+      --text-muted:   #8888aa;
+      --text-dim:     #55556a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(108,99,255,.4); border-radius: 99px; }
+
+    /* ── Animations ────────────────────────────────────────────────────────── */
+    @keyframes fadeUp      { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn      { from { opacity:0; } to { opacity:1; } }
+    @keyframes float       { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-12px); } }
+    @keyframes gradShift   { 0%,100% { background-position:0% 50%; } 50% { background-position:100% 50%; } }
+    @keyframes pulseRing   { 0% { transform:scale(1); opacity:.55; } 100% { transform:scale(1.6); opacity:0; } }
+    @keyframes chatSlide   { from { opacity:0; transform:translateY(18px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes blink       { 0%,80%,100% { opacity:0; } 40% { opacity:1; } }
+    @keyframes badgePop    { 0% { transform:scale(0); } 70% { transform:scale(1.3); } 100% { transform:scale(1); } }
+    @keyframes spin        { to { transform:rotate(360deg); } }
+    @keyframes barGrow     { from { width:0; } }
+
+    /* ── Noise overlay ─────────────────────────────────────────────────────── */
+    .noise {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Utility ───────────────────────────────────────────────────────────── */
+    .section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--accent); display: inline-block;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(26px, 4vw, 46px); font-weight: 800; line-height: 1.1; color: var(--text);
+    }
+    .chip {
+      background: var(--accent-muted); border: 1px solid rgba(108,99,255,.35);
+      color: var(--accent); font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 5px 13px; border-radius: 99px; display: inline-block;
+    }
+    .orb {
+      position: absolute; border-radius: 50%; pointer-events: none; filter: blur(70px);
+    }
+
+    /* ── Buttons ───────────────────────────────────────────────────────────── */
+    .btn-primary, .btn-outline {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'DM Sans', sans-serif; font-weight: 600;
+      font-size: 14px; border-radius: 11px; padding: 12px 26px;
+      cursor: pointer; border: none; transition: all .25s cubic-bezier(.4,0,.2,1);
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px var(--accent-glow); }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border) !important;
+    }
+    .btn-outline:hover { border-color: rgba(108,99,255,.45) !important; background: var(--accent-muted); color: #fff; }
+
+    /* ── Navbar ────────────────────────────────────────────────────────────── */
+    #navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      padding: 0 28px;
+      border-bottom: 1px solid transparent;
+      transition: background .4s, border-color .4s, backdrop-filter .4s;
+    }
+    #navbar.scrolled {
+      background: rgba(10,10,15,.88);
+      backdrop-filter: blur(22px);
+      border-bottom-color: var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
+      text-decoration: none; color: var(--text);
+    }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+      font-size: 16px;
+    }
+    .logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 36px; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none; font-size: 14px; font-weight: 500;
+      letter-spacing: .02em; position: relative; padding-bottom: 3px;
+      transition: color .25s;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 0; height: 1.5px; background: var(--accent); transition: width .3s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta { display: flex; gap: 10px; align-items: center; }
+    .menu-btn {
+      display: none; background: none; border: none;
+      color: var(--text-muted); cursor: pointer; padding: 4px;
+    }
+    .mobile-menu {
+      display: none; flex-direction: column; gap: 6px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 16px 28px 24px;
+    }
+    .mobile-menu.open { display: flex; animation: fadeIn .2s ease; }
+    .mobile-menu a {
+      color: var(--text-muted); text-decoration: none; font-size: 15px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      transition: color .2s;
+    }
+    .mobile-menu a:hover { color: var(--text); }
+
+    /* ── Hero ──────────────────────────────────────────────────────────────── */
+    #home {
+      min-height: 100vh; display: flex; align-items: center;
+      padding: 120px 28px 80px; position: relative; overflow: hidden;
+    }
+    .hero-inner {
+      max-width: 1200px; margin: 0 auto; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+    }
+    .hero-left { animation: fadeUp .8s ease both; }
+    .hero-eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .hero-eyebrow small { font-size: 12px; color: var(--text-muted); }
+    .hero-title {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(36px, 5.5vw, 68px); line-height: 1.07;
+      letter-spacing: -.02em; margin-bottom: 22px;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      background-size: 200% 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradShift 4s ease infinite;
+    }
+    .hero-desc { font-size: 17px; line-height: 1.75; color: var(--text-muted); margin-bottom: 36px; max-width: 480px; }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-stats { margin-top: 40px; display: flex; gap: 32px; }
+    .stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; }
+    .stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Floating chat preview card */
+    .hero-right { display: flex; justify-content: center; animation: fadeUp .8s .2s ease both; }
+    .preview-card {
+      width: 100%; max-width: 380px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,.5), 0 0 0 1px rgba(108,99,255,.14);
+      animation: float 5s ease-in-out infinite;
+    }
+    .preview-header {
+      background: linear-gradient(135deg, rgba(108,99,255,.15), rgba(0,212,170,.08));
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .bot-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .preview-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+    .online-badge {
+      font-size: 11px; color: var(--teal);
+      display: flex; align-items: center; gap: 5px; margin-top: 2px;
+    }
+    .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: inline-block; }
+    .preview-msgs { padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+    .msg-row { display: flex; }
+    .msg-row.bot { justify-content: flex-start; }
+    .msg-row.user { justify-content: flex-end; }
+    .bubble {
+      max-width: 78%; padding: 10px 14px; font-size: 13px; line-height: 1.55;
+    }
+    .bubble.bot {
+      background: var(--surface-high); color: var(--text);
+      border: 1px solid var(--border); border-radius: 4px 14px 14px 14px;
+    }
+    .bubble.user {
+      background: var(--accent); color: #fff;
+      border-radius: 14px 4px 14px 14px;
+    }
+    .typing-dots {
+      display: flex; gap: 5px; align-items: center;
+      padding: 12px 16px; background: var(--surface-high);
+      border: 1px solid var(--border); border-radius: 4px 14px 14px 14px;
+      width: fit-content;
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    }
+    .dot:nth-child(1) { animation: blink 1.4s 0s infinite; }
+    .dot:nth-child(2) { animation: blink 1.4s .2s infinite; }
+    .dot:nth-child(3) { animation: blink 1.4s .4s infinite; }
+
+    /* ── Features ──────────────────────────────────────────────────────────── */
+    #features {
+      padding: 120px 28px; position: relative;
+    }
+    .features-inner { max-width: 1200px; margin: 0 auto; }
+    .section-head { text-align: center; margin-bottom: 64px; }
+    .section-head p { color: var(--text-muted); font-size: 16px; max-width: 480px; margin: 14px auto 0; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px;
+      position: relative; overflow: hidden;
+      transition: border-color .3s, transform .3s, box-shadow .3s;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, var(--accent-muted), transparent 70%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .feature-card:hover { border-color: rgba(108,99,255,.3); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 14px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+      position: relative; z-index: 1;
+    }
+    .feature-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 10px; position: relative; z-index: 1; }
+    .feature-desc { color: var(--text-muted); font-size: 14px; line-height: 1.7; position: relative; z-index: 1; }
+
+    /* ── About ─────────────────────────────────────────────────────────────── */
+    #about { padding: 120px 28px; }
+    .about-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .stats-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
+      padding: 32px; box-shadow: 0 30px 80px rgba(0,0,0,.4); position: relative;
+    }
+    .stat-label-sm { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .progress-row { margin-bottom: 18px; }
+    .progress-head {
+      display: flex; justify-content: space-between; margin-bottom: 7px;
+      font-size: 13px; color: var(--text-muted);
+    }
+    .progress-head span:last-child { color: var(--teal); }
+    .progress-track { height: 4px; background: var(--surface-high); border-radius: 99px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--teal));
+      animation: barGrow 1.2s cubic-bezier(.4,0,.2,1) both;
+    }
+    .stats-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; border-top: 1px solid var(--border); padding-top: 22px; }
+    .mini-box {
+      background: var(--surface-high); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+    }
+    .mini-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; color: var(--accent); }
+    .mini-lbl { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .about-text .section-label { margin-bottom: 16px; }
+    .about-text .section-title { margin-bottom: 20px; }
+    .about-text p { color: var(--text-muted); font-size: 16px; line-height: 1.8; margin-bottom: 16px; }
+
+    /* ── Contact ───────────────────────────────────────────────────────────── */
+    #contact { padding: 120px 28px; }
+    .contact-inner { max-width: 680px; margin: 0 auto; }
+    .contact-head { text-align: center; margin-bottom: 48px; }
+    .contact-head p { color: var(--text-muted); margin-top: 10px; }
+    .contact-form {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 40px 36px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;
+    }
+    input, textarea {
+      width: 100%; background: var(--surface-high); border: 1px solid var(--border);
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+      border-radius: 10px; padding: 12px 16px; outline: none;
+      transition: border-color .25s, box-shadow .25s; resize: vertical;
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-dim); }
+    input:focus, textarea:focus {
+      border-color: rgba(108,99,255,.55);
+      box-shadow: 0 0 0 3px var(--accent-muted);
+    }
+    .form-submit { width: 100%; justify-content: center; padding: 14px; font-size: 15px; margin-top: 8px; }
+    .success-box {
+      background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.3);
+      border-radius: 18px; padding: 56px 32px; text-align: center; display: none;
+    }
+    .success-box.show { display: block; animation: fadeIn .4s ease; }
+    .success-icon { font-size: 52px; margin-bottom: 16px; }
+    .success-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; color: var(--teal); margin-bottom: 10px; }
+    .success-desc { color: var(--text-muted); }
+
+    /* ── Footer ────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 48px 28px;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;
+    }
+    .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); }
+    .footer-logo span { color: var(--accent); }
+    .footer-copy { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+    .footer-links { display: flex; gap: 28px; }
+    .footer-links a {
+      color: var(--text-muted); text-decoration: none; font-size: 13px;
+      transition: color .2s; position: relative; padding-bottom: 2px;
+    }
+    .footer-links a::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 0; height: 1px; background: var(--accent); transition: width .3s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .footer-links a:hover::after { width: 100%; }
+
+    /* ── Chat Widget ───────────────────────────────────────────────────────── */
+    #chat-widget {
+      position: fixed; bottom: 28px; right: 28px; z-index: 1000;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 14px;
+    }
+
+    /* FAB */
+    .fab-wrap { position: relative; }
+    .fab-pulse {
+      position: absolute; inset: -4px; border-radius: 50%;
+      background: var(--accent); opacity: .5;
+      animation: pulseRing 2s ease-out infinite;
+    }
+    #fab {
+      width: 58px; height: 58px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border: none; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 8px 28px var(--accent-glow);
+      transition: all .3s cubic-bezier(.4,0,.2,1);
+      position: relative; z-index: 1;
+    }
+    #fab:hover { transform: scale(1.1); }
+    #fab.open { background: var(--surface-high); box-shadow: none; border: 1px solid var(--border); }
+    .fab-badge {
+      position: absolute; top: -2px; right: -2px; z-index: 2;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ef4444; border: 2px solid var(--bg);
+      font-size: 9px; font-weight: 800; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      animation: badgePop .4s .7s cubic-bezier(.4,0,.2,1) both;
+    }
+    .fab-badge.hidden { display: none; }
+
+    /* Chat window */
+    #chat-window {
+      width: 360px; height: 540px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 22px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(108,99,255,.14);
+      animation: chatSlide .3s cubic-bezier(.4,0,.2,1) both;
+    }
+    #chat-window.hidden { display: none; }
+
+    .chat-header {
+      padding: 14px 16px;
+      background: linear-gradient(135deg, rgba(108,99,255,.15), rgba(0,212,170,.08));
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .chat-bot-avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      position: relative;
+    }
+    .status-dot {
+      position: absolute; bottom: 1px; right: 1px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--teal); border: 2px solid var(--surface);
+    }
+    .chat-bot-info { flex: 1; }
+    .chat-bot-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+    .chat-bot-status { font-size: 11px; color: var(--teal); display: flex; align-items: center; gap: 5px; }
+    .chat-header-btns { display: flex; gap: 2px; }
+    .icon-btn {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; padding: 7px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, color .2s;
+    }
+    .icon-btn:hover { background: var(--surface-high); color: var(--text); }
+
+    /* Messages area */
+    #messages-area {
+      flex: 1; overflow-y: auto; padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .msg-item { display: flex; animation: fadeIn .25s ease; }
+    .msg-item.bot { justify-content: flex-start; align-items: flex-end; gap: 8px; }
+    .msg-item.user { justify-content: flex-end; }
+    .msg-mini-avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .msg-content { max-width: 72%; }
+    .msg-bubble {
+      padding: 10px 13px; font-size: 13px; line-height: 1.55;
+      word-break: break-word;
+    }
+    .msg-bubble.bot {
+      background: var(--surface-high); color: var(--text);
+      border: 1px solid var(--border); border-radius: 4px 14px 14px 14px;
+    }
+    .msg-bubble.user {
+      background: var(--accent); color: #fff;
+      border-radius: 14px 4px 14px 14px;
+    }
+    .msg-time {
+      font-size: 10px; color: var(--text-dim); margin-top: 4px; padding-inline: 4px;
+    }
+    .msg-item.bot  .msg-time { text-align: left; }
+    .msg-item.user .msg-time { text-align: right; }
+
+    /* Typing indicator */
+    #typing-indicator {
+      display: none; align-items: flex-end; gap: 8px;
+      animation: fadeIn .2s ease;
+    }
+    #typing-indicator.show { display: flex; }
+    .typing-bubble {
+      padding: 12px 16px; background: var(--surface-high);
+      border: 1px solid var(--border); border-radius: 4px 14px 14px 14px;
+      display: flex; gap: 5px; align-items: center;
+    }
+    .typing-bubble .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+    /* Suggestions */
+    #suggestions {
+      padding: 0 14px 10px;
+      display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+    }
+    .sugg-chip {
+      background: var(--accent-muted); border: 1px solid rgba(108,99,255,.35);
+      color: var(--accent); font-size: 11px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: 6px 12px; border-radius: 99px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background .2s, color .2s;
+    }
+    .sugg-chip:hover { background: var(--accent); color: #fff; }
+
+    /* Input row */
+    .chat-input-row {
+      padding: 10px 14px 14px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+    }
+    #chat-input {
+      flex: 1; background: var(--surface-high); border: 1px solid var(--border);
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+      border-radius: 12px; padding: 9px 14px; outline: none;
+      transition: border-color .25s;
+    }
+    #chat-input::placeholder { color: var(--text-dim); }
+    #chat-input:focus { border-color: rgba(108,99,255,.5); }
+    .attach-btn, .mic-btn {
+      background: none; border: none; color: var(--text-dim);
+      cursor: pointer; padding: 7px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      transition: color .2s, background .2s; flex-shrink: 0;
+    }
+    .attach-btn:hover, .mic-btn:hover { color: var(--text-muted); background: var(--surface-high); }
+    #send-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: none;
+      background: var(--surface-high); color: var(--text-dim);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .25s;
+    }
+    #send-btn.active { background: var(--accent); color: #fff; }
+
+    /* Minimized bar */
+    #minimized-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 12px 18px; display: none; align-items: center; gap: 12px;
+      cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      transition: transform .2s; animation: chatSlide .3s ease both;
+    }
+    #minimized-bar.show { display: flex; }
+    #minimized-bar:hover { transform: translateY(-2px); }
+    .min-avatar {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .min-name { font-size: 13px; font-weight: 500; flex: 1; }
+    .min-close {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      padding: 4px; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; transition: color .2s;
+    }
+    .min-close:hover { color: var(--text-muted); }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .nav-links, .nav-cta .btn-outline { display: none; }
+      .menu-btn { display: flex; }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .about-inner { grid-template-columns: 1fr; }
+      .about-visual { display: none; }
+    }
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      #chat-window { width: calc(100vw - 32px); }
+      #chat-widget { right: 16px; bottom: 20px; }
+      .hero-stats { gap: 20px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="noise"></div>
+
+  <!-- ── Navbar ─────────────────────────────────────────────────────────── -->
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#home" class="logo">
+        <div class="logo-icon">🤖</div>
+        Nova<span>AI</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <div class="nav-cta">
+        <button class="btn-outline" style="padding:9px 20px;font-size:13px;">Sign In</button>
+        <button class="btn-primary" style="padding:9px 20px;font-size:13px;">Get Started</button>
+        <button class="menu-btn" id="menu-toggle" aria-label="Toggle menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobile-menu">
+      <a href="#home"     onclick="closeMobileMenu()">Home</a>
+      <a href="#features" onclick="closeMobileMenu()">Features</a>
+      <a href="#about"    onclick="closeMobileMenu()">About</a>
+      <a href="#contact"  onclick="closeMobileMenu()">Contact</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <section id="home">
+    <!-- orbs -->
+    <div class="orb" style="top:12%;left:8%;width:480px;height:480px;background:radial-gradient(circle,rgba(108,99,255,.18),transparent 70%);"></div>
+    <div class="orb" style="bottom:8%;right:6%;width:360px;height:360px;background:radial-gradient(circle,rgba(0,212,170,.14),transparent 70%);"></div>
+
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <span class="chip">✦ AI-Powered Platform</span>
+          <small>v2.4 Released</small>
+        </div>
+        <h1 class="hero-title">
+          The Future of<br>
+          <span class="gradient-text">Intelligent Chat</span>
+        </h1>
+        <p class="hero-desc">
+          NovaAI transforms how you interact with technology — delivering human-like conversations, instant answers, and seamless automation for every workflow.
+        </p>
+        <div class="hero-btns">
+          <button class="btn-primary" style="padding:13px 28px;font-size:15px;">
+            Start Free Trial
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="btn-outline" style="padding:13px 28px;font-size:15px;">Watch Demo</button>
+        </div>
+        <div class="hero-stats">
+          <div><div class="stat-val">50K+</div><div class="stat-lbl">Active Users</div></div>
+          <div><div class="stat-val">99.9%</div><div class="stat-lbl">Uptime SLA</div></div>
+          <div><div class="stat-val">4.9★</div><div class="stat-lbl">App Rating</div></div>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="preview-card">
+          <div class="preview-header">
+            <div class="bot-avatar">🤖</div>
+            <div>
+              <div class="preview-name">Nova Assistant</div>
+              <div class="online-badge"><span class="online-dot"></span>Online · Avg reply 2s</div>
+            </div>
+          </div>
+          <div class="preview-msgs">
+            <div class="msg-row bot"><div class="bubble bot">Hello! How can I help you today?</div></div>
+            <div class="msg-row user"><div class="bubble user">What can you do?</div></div>
+            <div class="msg-row bot"><div class="bubble bot">I can answer questions, write code, summarize docs, and much more!</div></div>
+            <div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ───────────────────────────────────────────────────────── -->
+  <section id="features">
+    <div class="orb" style="top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(108,99,255,.09),transparent 70%);"></div>
+    <div class="features-inner">
+      <div class="section-head">
+        <div class="section-label">Features</div>
+        <h2 class="section-title" style="margin-top:14px;">Everything you need,<br>nothing you don't</h2>
+        <p>A complete suite of AI capabilities designed for modern teams.</p>
+      </div>
+      <div class="features-grid" id="features-grid"></div>
+    </div>
+  </section>
+
+  <!-- ── About ──────────────────────────────────────────────────────────── -->
+  <section id="about">
+    <div class="about-inner">
+      <div class="about-visual">
+        <div class="stats-card">
+          <div class="section-label" style="font-size:11px;margin-bottom:14px;">System Status</div>
+          <div class="progress-row">
+            <div class="progress-head"><span>Inference Engine</span><span>98%</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:98%;animation-delay:.1s;"></div></div>
+          </div>
+          <div class="progress-row">
+            <div class="progress-head"><span>Knowledge Base</span><span>100%</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:100%;animation-delay:.25s;"></div></div>
+          </div>
+          <div class="progress-row" style="margin-bottom:0">
+            <div class="progress-head"><span>API Gateway</span><span>99%</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:99%;animation-delay:.4s;"></div></div>
+          </div>
+          <div class="stats-mini">
+            <div class="mini-box"><div class="mini-val">12B+</div><div class="mini-lbl">Parameters</div></div>
+            <div class="mini-box"><div class="mini-val">&lt;50ms</div><div class="mini-lbl">Avg. Latency</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="about-text">
+        <div class="section-label">About Nova</div>
+        <h2 class="section-title" style="margin-top:14px;">Built by engineers,<br>for everyone</h2>
+        <p style="margin-top:18px;">NovaAI was born from a simple belief: AI should be accessible, reliable, and genuinely useful — not a gimmick. Our team of ML researchers and product designers obsess over every interaction.</p>
+        <p>From Fortune 500 enterprises to indie developers, over 50,000 teams rely on Nova to power their customer experiences, internal tools, and creative workflows.</p>
+        <button class="btn-primary" style="margin-top:18px;">
+          Learn Our Story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Contact ────────────────────────────────────────────────────────── -->
+  <section id="contact">
+    <div class="contact-inner">
+      <div class="contact-head">
+        <div class="section-label">Contact</div>
+        <h2 class="section-title" style="margin-top:12px;">Let's talk</h2>
+        <p>Questions? Ideas? Our team responds within 2 hours.</p>
+      </div>
+
+      <div class="contact-form" id="contact-form-wrap">
+        <div class="form-row">
+          <div>
+            <label for="fname">Name</label>
+            <input type="text" id="fname" placeholder="Jane Smith" />
+          </div>
+          <div>
+            <label for="femail">Email</label>
+            <input type="email" id="femail" placeholder="jane@example.com" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="fmessage">Message</label>
+          <textarea id="fmessage" rows="5" placeholder="Tell us what you're building..."></textarea>
+        </div>
+        <button class="btn-primary form-submit" onclick="submitForm()">Send Message</button>
+      </div>
+
+      <div class="success-box" id="success-box">
+        <div class="success-icon">✦</div>
+        <div class="success-title">Message Sent!</div>
+        <p class="success-desc">We'll be in touch shortly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">Nova<span>AI</span></div>
+        <div class="footer-copy">© 2026 NovaAI Inc. All rights reserved.</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Security</a>
+        <a href="#">Status</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── Chat Widget ─────────────────────────────────────────────────────── -->
+  <div id="chat-widget">
+
+    <!-- Chat window -->
+    <div id="chat-window" class="hidden">
+      <div class="chat-header">
+        <div class="chat-bot-avatar">
+          🤖
+          <span class="status-dot"></span>
+        </div>
+        <div class="chat-bot-info">
+          <div class="chat-bot-name">Nova Assistant</div>
+          <div class="chat-bot-status">
+            <span class="online-dot"></span>Online · Typically replies instantly
+          </div>
+        </div>
+        <div class="chat-header-btns">
+          <button class="icon-btn" onclick="minimizeChat()" title="Minimize">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="icon-btn" onclick="closeChat()" title="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="messages-area">
+        <!-- Messages injected by JS -->
+        <div id="typing-indicator">
+          <div class="msg-mini-avatar">🤖</div>
+          <div class="typing-bubble">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="suggestions">
+        <button class="sugg-chip" onclick="sendSuggestion('Ask a question')">Ask a question</button>
+        <button class="sugg-chip" onclick="sendSuggestion('Get help')">Get help</button>
+        <button class="sugg-chip" onclick="sendSuggestion('Learn more')">Learn more</button>
+        <button class="sugg-chip" onclick="sendSuggestion('Contact support')">Contact support</button>
+      </div>
+
+      <div class="chat-input-row">
+        <button class="attach-btn" title="Attach file">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input type="text" id="chat-input" placeholder="Type a message..." oninput="onInputChange()" onkeydown="onKeyDown(event)" />
+        <button class="mic-btn" title="Voice message">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button id="send-btn" onclick="sendMessage()" title="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Minimized bar -->
+    <div id="minimized-bar" onclick="restoreChat()">
+      <div class="min-avatar">🤖</div>
+      <span class="min-name">Nova Assistant</span>
+      <button class="min-close" onclick="closeFromMin(event)" title="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab-wrap">
+      <div class="fab-pulse" id="fab-pulse"></div>
+      <button id="fab" onclick="toggleChat()">
+        <!-- Chat icon (default) -->
+        <svg id="fab-icon-chat" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <!-- X icon (close) -->
+        <svg id="fab-icon-x" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="fab-badge" id="fab-badge">1</div>
+    </div>
+  </div>
+
+
+  <!-- ── JavaScript ─────────────────────────────────────────────────────── -->
+  <script>
+    /* ── Navbar scroll effect ──────────────────────────────────────────── */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 30);
+    });
+
+    /* ── Mobile menu ───────────────────────────────────────────────────── */
+    document.getElementById('menu-toggle').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('open');
+    });
+    function closeMobileMenu() {
+      document.getElementById('mobile-menu').classList.remove('open');
+    }
+
+    /* ── Features data & render ────────────────────────────────────────── */
+    const FEATURES = [
+      { icon: '⚡', title: 'Lightning Fast',    desc: 'Sub-second response times powered by our optimized inference engine. No waiting, just instant answers.',                                        accent: '#6c63ff', bg: 'rgba(108,99,255,.13)', border: 'rgba(108,99,255,.3)' },
+      { icon: '🛡️', title: 'Enterprise Security', desc: 'SOC 2 compliant, end-to-end encryption, and zero data retention policies keep your conversations private.',                                  accent: '#f59e0b', bg: 'rgba(245,158,11,.13)',  border: 'rgba(245,158,11,.3)'  },
+      { icon: '🌐', title: '100+ Languages',    desc: 'Break language barriers with native-quality translations and multilingual reasoning across every major language.',                               accent: '#00d4aa', bg: 'rgba(0,212,170,.13)',   border: 'rgba(0,212,170,.3)'   },
+      { icon: '🧠', title: 'Custom Training',   desc: 'Fine-tune Nova on your own data to create a domain-expert bot that speaks your industry\'s language.',                                          accent: '#f472b6', bg: 'rgba(244,114,182,.13)', border: 'rgba(244,114,182,.3)' },
+    ];
+
+    const grid = document.getElementById('features-grid');
+    FEATURES.forEach((f, i) => {
+      grid.innerHTML += `
+        <div class="feature-card">
+          <div class="feature-icon" style="background:${f.bg};border:1px solid ${f.border};color:${f.accent};">${f.icon}</div>
+          <div class="feature-title">${f.title}</div>
+          <p class="feature-desc">${f.desc}</p>
+        </div>`;
+    });
+
+    /* ── Contact form ──────────────────────────────────────────────────── */
+    function submitForm() {
+      const name  = document.getElementById('fname').value.trim();
+      const email = document.getElementById('femail').value.trim();
+      if (!name || !email) {
+        alert('Please fill in your name and email.');
+        return;
+      }
+      document.getElementById('contact-form-wrap').style.display = 'none';
+      document.getElementById('success-box').classList.add('show');
+    }
+
+    /* ── Chat Widget State ─────────────────────────────────────────────── */
+    let chatOpen      = false;
+    let chatMinimized = false;
+    let msgCount      = 0;
+
+    const chatWindow   = document.getElementById('chat-window');
+    const minBar       = document.getElementById('minimized-bar');
+    const fab          = document.getElementById('fab');
+    const fabPulse     = document.getElementById('fab-pulse');
+    const fabBadge     = document.getElementById('fab-badge');
+    const fabIconChat  = document.getElementById('fab-icon-chat');
+    const fabIconX     = document.getElementById('fab-icon-x');
+    const messagesArea = document.getElementById('messages-area');
+    const suggestionsEl= document.getElementById('suggestions');
+    const chatInput    = document.getElementById('chat-input');
+    const sendBtn      = document.getElementById('send-btn');
+    const typingEl     = document.getElementById('typing-indicator');
+
+    const BOT_REPLIES = [
+      "Great question! I'm here to help you get the most out of NovaAI.",
+      "I'd be happy to assist with that. Could you tell me a bit more?",
+      "Absolutely! NovaAI is designed to make your work faster and smarter.",
+      "Sure thing! Let me look into that for you right away.",
+      "That's an interesting point. Here's what I know about that topic...",
+      "Happy to help! NovaAI supports over 100 languages and integrates with your favourite tools.",
+    ];
+
+    // Add welcome message on first open
+    function addWelcomeMessage() {
+      addMessage('bot', "👋 Hey there! I'm Nova, your AI assistant. How can I help you today?");
+    }
+
+    function addMessage(from, text) {
+      msgCount++;
+      // Hide suggestions after first user message
+      if (from === 'user' && msgCount > 2) {
+        suggestionsEl.style.display = 'none';
+      }
+
+      const item = document.createElement('div');
+      item.className = `msg-item ${from}`;
+
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (from === 'bot') {
+        item.innerHTML = `
+          <div class="msg-mini-avatar">🤖</div>
+          <div class="msg-content">
+            <div class="msg-bubble bot">${text}</div>
+            <div class="msg-time">${time}</div>
+          </div>`;
+      } else {
+        item.innerHTML = `
+          <div class="msg-content">
+            <div class="msg-bubble user">${text}</div>
+            <div class="msg-time">${time}</div>
+          </div>`;
+      }
+
+      // Insert before typing indicator
+      messagesArea.insertBefore(item, typingEl);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+
+    function showTyping() {
+      typingEl.classList.add('show');
+      scrollToBottom();
+    }
+    function hideTyping() {
+      typingEl.classList.remove('show');
+    }
+
+    function botReply() {
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        const reply = BOT_REPLIES[Math.floor(Math.random() * BOT_REPLIES.length)];
+        addMessage('bot', reply);
+      }, 1400);
+    }
+
+    /* ── Open / Close / Minimize ──────────────────────────────────────── */
+    function openChat() {
+      chatOpen = true;
+      chatMinimized = false;
+
+      chatWindow.classList.remove('hidden');
+      chatWindow.style.animation = 'chatSlide .3s cubic-bezier(.4,0,.2,1) both';
+
+      minBar.classList.remove('show');
+      fab.classList.add('open');
+      fabPulse.style.display = 'none';
+      fabIconChat.style.display = 'none';
+      fabIconX.style.display = 'block';
+      fabBadge.classList.add('hidden');
+
+      if (msgCount === 0) addWelcomeMessage();
+      setTimeout(scrollToBottom, 50);
+    }
+
+    function closeChat() {
+      chatOpen = false;
+      chatMinimized = false;
+      chatWindow.classList.add('hidden');
+      minBar.classList.remove('show');
+      fab.classList.remove('open');
+      fabPulse.style.display = 'block';
+      fabIconChat.style.display = 'block';
+      fabIconX.style.display = 'none';
+    }
+
+    function minimizeChat() {
+      chatMinimized = true;
+      chatWindow.classList.add('hidden');
+      minBar.classList.add('show');
+    }
+
+    function restoreChat() {
+      chatMinimized = false;
+      chatWindow.classList.remove('hidden');
+      chatWindow.style.animation = 'chatSlide .3s cubic-bezier(.4,0,.2,1) both';
+      minBar.classList.remove('show');
+      setTimeout(scrollToBottom, 50);
+    }
+
+    function closeFromMin(e) {
+      e.stopPropagation();
+      chatOpen = false;
+      chatMinimized = false;
+      minBar.classList.remove('show');
+      fab.classList.remove('open');
+      fabPulse.style.display = 'block';
+      fabIconChat.style.display = 'block';
+      fabIconX.style.display = 'none';
+    }
+
+    function toggleChat() {
+      if (!chatOpen) {
+        openChat();
+      } else if (chatMinimized) {
+        restoreChat();
+      } else {
+        closeChat();
+      }
+    }
+
+    /* ── Send messages ────────────────────────────────────────────────── */
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = '';
+      sendBtn.classList.remove('active');
+      addMessage('user', text);
+      botReply();
+    }
+
+    function sendSuggestion(text) {
+      addMessage('user', text);
+      botReply();
+    }
+
+    function onInputChange() {
+      sendBtn.classList.toggle('active', chatInput.value.trim().length > 0);
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+  </script>
+</body>
+</html>
